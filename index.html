@@ -2,210 +2,367 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <!-- iOS/iPadOS 홈 화면 앱(PWA) 설정 -->
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="스마트 가계부">
-  <title>스마트 메모리 가계부 v3.0</title>
-  <!-- Tailwind CSS, 최신 Supabase SDK (sb_publishable 키 완벽 호환), Chart.js -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="가계부">
+  <title>스마트 가계부 iOS Edition</title>
+  <!-- Tailwind CSS, 최신 Supabase SDK, Chart.js -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    :root {
+      --ios-bg: #F2F2F7;
+      --ios-card: #FFFFFF;
+      --ios-blue: #007AFF;
+      --ios-green: #34C759;
+      --ios-red: #FF3B30;
+      --ios-orange: #FF9500;
+      --ios-gray: #8E8E93;
+      --spring-easing: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    body {
+      background-color: var(--ios-bg);
+      color: #1C1C1E;
+      -webkit-tap-highlight-color: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Apple SD Gothic Neo", "Segoe UI", Roboto, sans-serif;
+      letter-spacing: -0.015em;
+      overflow-x: hidden;
+    }
+
+    /* iOS 반투명 블러 헤더 */
+    .ios-glass-header {
+      background: rgba(242, 242, 247, 0.78);
+      backdrop-filter: saturate(180%) blur(20px);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+      border-bottom: 0.5px solid rgba(60, 60, 67, 0.12);
+    }
+
+    /* iOS 카드 스타일 및 부드러운 트랜지션 */
+    .ios-card {
+      background: var(--ios-card);
+      border-radius: 24px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.035), 0 1px 3px rgba(0, 0, 0, 0.02);
+      transition: transform 0.35s var(--spring-easing), box-shadow 0.35s var(--spring-easing), border-color 0.3s ease;
+    }
+
+    /* 과하지 않은 자연스러운 터치 반응 (Apple Spring Press) */
+    .ios-btn {
+      transition: transform 0.2s var(--spring-easing), opacity 0.2s ease, background-color 0.2s ease;
+      user-select: none;
+    }
+    .ios-btn:active {
+      transform: scale(0.95);
+      opacity: 0.85;
+    }
+
+    /* 입력창 포커스 부드러운 애니메이션 */
+    .ios-input {
+      background-color: #F2F2F7;
+      border: 1.5px solid transparent;
+      border-radius: 14px;
+      transition: all 0.25s var(--spring-easing);
+    }
+    .ios-input:focus {
+      background-color: #FFFFFF;
+      border-color: var(--ios-blue);
+      box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.12);
+      outline: none;
+    }
+
+    /* iOS 세그먼트 컨트롤 (지출/수입 토글) */
+    .ios-segment-bg {
+      background-color: rgba(118, 118, 128, 0.12);
+      border-radius: 12px;
+      padding: 3px;
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+    .ios-segment-btn {
+      position: relative;
+      z-index: 2;
+      padding: 7px 0;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 9px;
+      transition: color 0.25s ease, background-color 0.25s var(--spring-easing), box-shadow 0.25s var(--spring-easing);
+    }
+    .ios-segment-active {
+      background-color: #FFFFFF;
+      color: #1C1C1E;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 1px rgba(0, 0, 0, 0.04);
+    }
+
+    /* 요소 등장 애니메이션 (Fade & Slide Up) */
+    @keyframes iosSlideUp {
+      from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.99);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+    .animate-ios-in {
+      animation: iosSlideUp 0.42s var(--spring-easing) both;
+    }
+
+    /* 리스트 아이템 부드러운 추가 효과 */
+    @keyframes iosItemAppear {
+      from {
+        opacity: 0;
+        transform: translateY(-6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .ios-list-item {
+      animation: iosItemAppear 0.3s var(--spring-easing) both;
+      transition: background-color 0.2s ease, transform 0.2s var(--spring-easing);
+    }
+    .ios-list-item:active {
+      background-color: rgba(0, 0, 0, 0.025);
+    }
+
+    /* 모달 슬라이드 다운 */
+    @keyframes iosModalDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+    .animate-modal {
+      animation: iosModalDown 0.32s var(--spring-easing) both;
+    }
   </style>
 </head>
-<body class="bg-slate-100 text-slate-900 min-h-screen pb-20">
+<body class="min-h-screen pb-24">
 
-  <!-- 상단 헤더 -->
-  <header class="bg-indigo-600 text-white pt-10 pb-5 px-6 shadow-md sticky top-0 z-20">
+  <!-- iOS 스타일 상단 블러 네비게이션 헤더 -->
+  <header class="ios-glass-header pt-11 pb-3.5 px-5 sticky top-0 z-30">
     <div class="max-w-5xl mx-auto flex justify-between items-center">
       <div>
         <div class="flex items-center gap-2">
-          <h1 class="text-xl font-bold">스마트 메모리 가계부</h1>
-          <span class="text-[10px] bg-indigo-800 text-indigo-200 px-2 py-0.5 rounded-full font-semibold">v3.0 완전체</span>
+          <h1 class="text-[22px] font-extrabold tracking-tight text-slate-900">나의 가계부</h1>
+          <span class="text-[10px] bg-blue-500/10 text-[#007AFF] px-2 py-0.5 rounded-full font-bold">iOS v4.0</span>
         </div>
-        <p id="syncStatus" class="text-xs text-indigo-200 mt-0.5">💾 기기 내부 영구 저장 모드 (초기화 방지 켜짐)</p>
+        <div class="flex items-center gap-1.5 mt-0.5">
+          <span id="syncDot" class="w-2 h-2 rounded-full bg-[#34C759] inline-block transition-colors duration-300"></span>
+          <p id="syncStatus" class="text-[12px] text-[#8E8E93] font-medium">기기 내부 안전 저장 중</p>
+        </div>
       </div>
-      <button onclick="toggleConfig()" class="text-xs bg-white text-indigo-700 hover:bg-indigo-50 px-3.5 py-2 rounded-xl font-bold shadow-sm transition">
-        ⚙️ 연동 설정
+      <button onclick="toggleConfig()" class="ios-btn text-[13px] bg-white/90 hover:bg-white text-[#007AFF] px-3.5 py-2 rounded-full font-semibold shadow-sm border border-black/5 flex items-center gap-1">
+        <span>⚙️</span>
+        <span>연동 설정</span>
       </button>
     </div>
   </header>
 
-  <!-- 클라우드 연동 설정창 -->
-  <div id="configModal" class="hidden max-w-5xl mx-auto mt-4 px-4">
-    <div class="bg-white p-5 rounded-2xl shadow-lg border-2 border-indigo-200">
-      <h2 class="text-sm font-bold text-slate-800 mb-1">☁️ 아이폰 ↔ 아이패드 실시간 클라우드 연동 설정</h2>
-      <p class="text-xs text-slate-500 mb-3">복사해 둔 Supabase URL과 Key(sb_publishable_... 또는 eyJ...)를 입력하고 연결을 누르세요.</p>
-      <div class="space-y-2.5">
+  <!-- 클라우드 연동 설정 모달 카드 -->
+  <div id="configModal" class="hidden max-w-5xl mx-auto mt-3 px-4">
+    <div class="ios-card p-5 border border-blue-500/20 animate-modal">
+      <div class="flex justify-between items-start mb-2">
         <div>
-          <label class="text-[11px] font-bold text-slate-600">1. Project URL</label>
-          <input id="sbUrl" type="text" placeholder="https://yoqcobqzepaidsigswsz.supabase.co" class="w-full mt-0.5 p-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-indigo-600">
+          <h2 class="text-[15px] font-bold text-slate-900">☁️ iCloud 스타일 실시간 클라우드 연동</h2>
+          <p class="text-[12px] text-[#8E8E93] mt-0.5">Supabase URL과 Key를 입력하면 아이폰과 아이패드가 실시간 동기화됩니다.</p>
+        </div>
+      </div>
+      <div class="space-y-3 mt-3">
+        <div>
+          <label class="text-[11px] font-semibold text-[#8E8E93] ml-1">PROJECT URL</label>
+          <input id="sbUrl" type="text" placeholder="https://yoqcobqzepaidsigswsz.supabase.co" class="ios-input w-full mt-1 p-3 text-sm">
         </div>
         <div>
-          <label class="text-[11px] font-bold text-slate-600">2. API Key (Publishable Key 또는 Anon Key)</label>
-          <input id="sbKey" type="text" placeholder="sb_publishable_... 또는 eyJhbGci..." class="w-full mt-0.5 p-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-indigo-600">
+          <label class="text-[11px] font-semibold text-[#8E8E93] ml-1">API KEY (Publishable 또는 Anon)</label>
+          <input id="sbKey" type="text" placeholder="sb_publishable_... 또는 eyJhbGci..." class="ios-input w-full mt-1 p-3 text-sm">
         </div>
-        <div id="cloudErrorMsg" class="hidden text-xs text-rose-600 bg-rose-50 p-2.5 rounded-lg font-medium"></div>
+        <div id="cloudErrorMsg" class="hidden text-xs text-[#FF3B30] bg-red-50 p-3 rounded-xl font-medium"></div>
         <div class="flex gap-2 pt-1">
-          <button onclick="saveCloudConfig()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition">저장 및 지금 연결 테스트</button>
-          <button onclick="toggleConfig()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl transition">닫기</button>
+          <button onclick="saveCloudConfig()" class="ios-btn flex-1 bg-[#007AFF] text-white text-[13px] font-semibold py-3 rounded-xl shadow-sm">저장 및 연결 테스트</button>
+          <button onclick="toggleConfig()" class="ios-btn bg-[#E5E5EA] text-slate-700 text-[13px] font-semibold px-5 py-3 rounded-xl">닫기</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- 메인 레이아웃: 아이폰 1단, 아이패드 2단 -->
-  <main class="max-w-5xl mx-auto mt-6 px-4 grid grid-cols-1 md:grid-cols-12 gap-6">
+  <!-- 메인 컨텐츠 그리드: 모바일 1단, 아이패드 2단 -->
+  <main class="max-w-5xl mx-auto mt-5 px-4 grid grid-cols-1 md:grid-cols-12 gap-5">
     
-    <!-- 왼쪽/상단 컬럼: 잔액, 목표 예산, 한 줄 입력, 상세 입력/수정 폼 -->
-    <section class="md:col-span-5 space-y-6">
+    <!-- 왼쪽/상단 컬럼 -->
+    <section class="md:col-span-5 space-y-5">
       
-      <!-- 1. 총 잔액 및 이번 달 목표 예산 카드 -->
-      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
-        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">총 잔액 (전체 수입 - 전체 지출)</span>
-        <div id="totalBalance" class="text-3xl font-extrabold text-slate-800 mt-1">0원</div>
+      <!-- 1. Apple 지갑 스타일 잔액 & 예산 카드 -->
+      <div class="ios-card p-6 animate-ios-in" style="animation-delay: 0.02s;">
+        <div class="flex justify-between items-center">
+          <span class="text-[12px] font-semibold text-[#8E8E93]">현재 총 잔액</span>
+          <span class="text-[11px] text-[#8E8E93] bg-[#F2F2F7] px-2.5 py-0.5 rounded-full font-medium">전체 누적</span>
+        </div>
+        <div id="totalBalance" class="text-[34px] font-extrabold text-slate-900 mt-1 tracking-tight leading-tight">0원</div>
         
-        <div class="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-slate-100">
+        <div class="grid grid-cols-2 gap-3 mt-5 p-3.5 bg-[#F2F2F7]/70 rounded-2xl">
           <div>
-            <span class="text-xs text-slate-400">이번 달 수입</span>
-            <p id="totalIncome" class="text-sm font-bold text-emerald-600 mt-0.5">+0원</p>
+            <div class="flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#34C759]"></span>
+              <span class="text-[11px] font-medium text-[#8E8E93]">이번 달 수입</span>
+            </div>
+            <p id="totalIncome" class="text-[15px] font-bold text-[#34C759] mt-0.5">+0원</p>
           </div>
-          <div>
-            <span class="text-xs text-slate-400">이번 달 지출</span>
-            <p id="totalExpense" class="text-sm font-bold text-rose-500 mt-0.5">-0원</p>
+          <div class="border-l border-black/5 pl-3">
+            <div class="flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#FF3B30]"></span>
+              <span class="text-[11px] font-medium text-[#8E8E93]">이번 달 지출</span>
+            </div>
+            <p id="totalExpense" class="text-[15px] font-bold text-[#FF3B30] mt-0.5">-0원</p>
           </div>
         </div>
 
-        <!-- 이번 달 목표 예산 진행률 및 알림 섹션 -->
-        <div class="mt-5 pt-4 border-t border-slate-100">
+        <!-- 이번 달 목표 예산 프로그레스 -->
+        <div class="mt-5 pt-4 border-t border-black/5">
           <div class="flex justify-between items-center mb-1.5">
-            <span class="text-xs font-bold text-slate-700">🎯 이번 달 목표 지출 예산</span>
-            <button onclick="promptBudget()" class="text-xs bg-indigo-50 text-indigo-600 hover:bg-indigo-100 px-2.5 py-1 rounded-lg font-bold transition">예산 설정</button>
+            <span class="text-[13px] font-bold text-slate-800">🎯 이번 달 목표 예산</span>
+            <button onclick="promptBudget()" class="ios-btn text-[12px] text-[#007AFF] bg-blue-500/10 px-3 py-1 rounded-full font-semibold">예산 설정</button>
           </div>
-          <div class="flex justify-between items-baseline text-xs text-slate-500 mb-2">
-            <span id="budgetStatusText">예산을 설정해 주세요</span>
+          <div class="flex justify-between items-baseline text-[12px] text-[#8E8E93] mb-2">
+            <span id="budgetStatusText">예산을 설정해 보세요</span>
             <span id="budgetPercentText" class="font-bold text-slate-700">0%</span>
           </div>
-          <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
-            <div id="budgetProgressBar" class="h-full bg-emerald-500 transition-all duration-300" style="width: 0%"></div>
+          <div class="w-full h-2.5 bg-[#E5E5EA] rounded-full overflow-hidden p-0.5">
+            <div id="budgetProgressBar" class="h-full rounded-full bg-[#34C759] transition-all duration-700 ease-out" style="width: 0%"></div>
           </div>
-          <div id="budgetAlertBox" class="hidden mt-3 p-3 rounded-xl text-xs font-bold flex items-center gap-2"></div>
+          <div id="budgetAlertBox" class="hidden mt-3 p-3 rounded-2xl text-[12px] font-semibold flex items-center gap-2 transition-all duration-300"></div>
         </div>
       </div>
 
-      <!-- 2. 스마트 한 줄 빠른 입력 바 (용돈 2000, 밥4000 자동 인식) -->
-      <div class="bg-indigo-50 p-5 rounded-2xl border border-indigo-200 shadow-sm">
-        <div class="flex justify-between items-center mb-1.5">
-          <label class="text-xs font-bold text-indigo-950">⚡ 한 줄 빠른 입력 (자동 수입/지출 인식)</label>
-          <span class="text-[11px] text-indigo-600 font-semibold">엔터 치면 바로 저장!</span>
+      <!-- 2. iOS 스포트라이트 감성 한 줄 빠른 입력 바 -->
+      <div class="ios-card p-5 border border-blue-500/15 animate-ios-in" style="animation-delay: 0.07s;">
+        <div class="flex justify-between items-center mb-2">
+          <div class="flex items-center gap-1.5">
+            <span class="text-sm">⚡</span>
+            <label class="text-[13px] font-bold text-slate-900">한 줄 빠른 입력</label>
+          </div>
+          <span class="text-[11px] text-[#007AFF] font-medium">용돈 2000 · 밥4000</span>
         </div>
         <form onsubmit="handleQuickSubmit(event)" class="flex gap-2">
-          <input id="quickInput" type="text" placeholder="예: 용돈 2000, 밥4000, 카페 3500"
+          <input id="quickInput" type="text" placeholder="내역과 금액 입력 (예: 메가커피 2000)"
             oninput="parseQuickInput(this.value)"
-            class="flex-1 p-3 bg-white border border-indigo-200 rounded-xl text-sm focus:outline-none focus:border-indigo-600">
-          <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 rounded-xl text-xs shrink-0 shadow-sm transition">
-            빠른 등록
+            class="ios-input flex-1 px-3.5 py-3 text-[14px]">
+          <button type="submit" class="ios-btn bg-[#007AFF] text-white font-semibold px-4 rounded-[14px] text-[13px] shrink-0 shadow-sm">
+            등록
           </button>
         </form>
-        <p id="quickPreview" class="text-xs text-indigo-700 mt-2 hidden font-bold"></p>
+        <p id="quickPreview" class="text-[12px] text-[#007AFF] mt-2.5 hidden font-semibold bg-blue-500/5 px-3 py-1.5 rounded-xl"></p>
       </div>
 
-      <!-- 3. 상세 내역 작성 및 수정 카드 (메모리 시스템 탑재) -->
-      <div id="formCard" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80 transition">
+      <!-- 3. 상세 작성 및 수정 카드 (메모리 시스템 탑재) -->
+      <div id="formCard" class="ios-card p-6 animate-ios-in" style="animation-delay: 0.12s;">
         <div class="flex justify-between items-center mb-4">
-          <h2 id="formTitle" class="text-base font-bold text-slate-800">📝 상세 내역 작성</h2>
-          <span id="memoryBadge" class="hidden text-xs bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full font-bold">
-            ✨ 과거 기록 기억됨!
+          <h2 id="formTitle" class="text-[16px] font-bold text-slate-900">내역 상세 기록</h2>
+          <span id="memoryBadge" class="hidden text-[11px] bg-amber-500/15 text-[#FF9500] px-2.5 py-1 rounded-full font-bold animate-modal">
+            ✨ 자동 기억 완료
           </span>
         </div>
 
-        <form id="ledgerForm" onsubmit="saveEntry(event)" class="space-y-3">
+        <form id="ledgerForm" onsubmit="saveEntry(event)" class="space-y-4">
+          <!-- iOS 스타일 세그먼트 컨트롤 (지출 / 수입) -->
           <div>
-            <label class="text-xs font-semibold text-slate-500">내역 / 사용처 (과거 입력 내역 자동 기억)</label>
+            <input id="typeInput" type="hidden" value="expense">
+            <div class="ios-segment-bg">
+              <button type="button" id="segExpense" onclick="setEntryType('expense')" class="ios-segment-btn ios-segment-active">
+                지출 (-)
+              </button>
+              <button type="button" id="segIncome" onclick="setEntryType('income')" class="ios-segment-btn text-[#8E8E93]">
+                수입 (+)
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label class="text-[12px] font-semibold text-[#8E8E93] ml-1">사용처 / 내역 이름</label>
             <input id="titleInput" list="memoryList" type="text" required placeholder="예: 편의점, 스터디카페, 용돈"
               oninput="handleTitleInput(this.value)"
-              class="w-full mt-1 p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500">
+              class="ios-input w-full mt-1 p-3.5 text-[14px]">
             <datalist id="memoryList"></datalist>
-            <!-- 터치로 바로 고르는 최근 기억 칩 영역 -->
-            <div id="memoryChips" class="flex flex-wrap gap-1.5 mt-2"></div>
+            <!-- 원터치 기억 칩 영역 -->
+            <div id="memoryChips" class="flex flex-wrap gap-1.5 mt-2.5"></div>
           </div>
 
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="text-xs font-semibold text-slate-500">금액 (원)</label>
+              <label class="text-[12px] font-semibold text-[#8E8E93] ml-1">금액 (원)</label>
               <input id="amountInput" type="number" required placeholder="4000"
-                class="w-full mt-1 p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500">
+                class="ios-input w-full mt-1 p-3.5 text-[14px] font-semibold">
             </div>
             <div>
-              <label class="text-xs font-semibold text-slate-500">구분</label>
-              <select id="typeInput" class="w-full mt-1 p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500">
-                <option value="expense">지출 (-)</option>
-                <option value="income">수입 (+)</option>
+              <label class="text-[12px] font-semibold text-[#8E8E93] ml-1">카테고리</label>
+              <select id="categoryInput" class="ios-input w-full mt-1 p-3.5 text-[14px] appearance-none">
+                <option value="식비/간식">🍔 식비/간식</option>
+                <option value="학업/문구">📚 학업/문구</option>
+                <option value="교통">🚌 교통</option>
+                <option value="취미/여가">🎮 취미/여가</option>
+                <option value="쇼핑">🛍️ 쇼핑</option>
+                <option value="용돈/기타">💰 용돈/기타</option>
               </select>
             </div>
           </div>
 
-          <div>
-            <label class="text-xs font-semibold text-slate-500">카테고리</label>
-            <select id="categoryInput" class="w-full mt-1 p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500">
-              <option value="식비/간식">🍔 식비/간식</option>
-              <option value="학업/문구">📚 학업/문구</option>
-              <option value="교통">🚌 교통</option>
-              <option value="취미/여가">🎮 취미/여가</option>
-              <option value="쇼핑">🛍️ 쇼핑</option>
-              <option value="용돈/기타">💰 용돈/기타</option>
-            </select>
-          </div>
-
-          <div class="flex gap-2 pt-2">
-            <button id="submitBtn" type="submit" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl text-sm shadow-sm transition">
+          <div class="flex gap-2 pt-1">
+            <button id="submitBtn" type="submit" class="ios-btn flex-1 bg-[#007AFF] text-white font-bold py-3.5 rounded-[16px] text-[14px] shadow-sm">
               기록 저장하기
             </button>
-            <button id="cancelEditBtn" type="button" onclick="cancelEdit()" class="hidden bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-4 py-3.5 rounded-xl text-sm transition">
-              수정 취소
+            <button id="cancelEditBtn" type="button" onclick="cancelEdit()" class="ios-btn hidden bg-[#E5E5EA] text-slate-700 font-semibold px-4 py-3.5 rounded-[16px] text-[14px]">
+              취소
             </button>
           </div>
         </form>
       </div>
     </section>
 
-    <!-- 오른쪽/하단 컬럼: 카테고리별 지출 비율 차트 & 최근 내역 리스트 (수정/삭제 포함) -->
-    <section class="md:col-span-7 space-y-6">
+    <!-- 오른쪽/하단 컬럼: 차트 & 내역 리스트 -->
+    <section class="md:col-span-7 space-y-5">
       
-      <!-- 4. 이번 달 카테고리별 지출 비율 도넛 차트 카드 -->
-      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
+      <!-- 4. 카테고리별 지출 비율 도넛 차트 카드 -->
+      <div class="ios-card p-6 animate-ios-in" style="animation-delay: 0.16s;">
         <div class="flex justify-between items-center mb-4">
-          <h2 id="chartMonthTitle" class="text-base font-bold text-slate-800">📊 이번 달 카테고리별 지출 비율</h2>
-          <span class="text-xs text-slate-400">당월 지출 기준</span>
+          <h2 id="chartMonthTitle" class="text-[16px] font-bold text-slate-900">📊 이번 달 지출 분석</h2>
+          <span class="text-[11px] font-medium text-[#8E8E93] bg-[#F2F2F7] px-2.5 py-1 rounded-full">카테고리 비중</span>
         </div>
         
-        <div id="chartEmptyState" class="text-sm text-slate-400 py-8 text-center">
-          이번 달 지출 내역이 입력되면 원형 분석 차트가 표시됩니다.
+        <div id="chartEmptyState" class="text-[13px] text-[#8E8E93] py-10 text-center">
+          이번 달 지출 내역을 등록하면 차트가 부드럽게 그려집니다.
         </div>
 
         <div id="chartContent" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
           <div class="relative w-44 h-44 mx-auto">
             <canvas id="expenseChart"></canvas>
           </div>
-          <div id="categoryBreakdown" class="space-y-2.5 text-xs"></div>
+          <div id="categoryBreakdown" class="space-y-2.5 text-[13px]"></div>
         </div>
       </div>
 
-      <!-- 5. 최근 내역 리스트 (수정 및 삭제 버튼 탑재) -->
-      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80 min-h-[360px]">
+      <!-- 5. 최근 내역 리스트 카드 -->
+      <div class="ios-card p-6 min-h-[380px] animate-ios-in" style="animation-delay: 0.2s;">
         <div class="flex justify-between items-center mb-4">
           <div>
-            <h2 class="text-base font-bold text-slate-800">📋 최근 기록 내역</h2>
-            <p class="text-[11px] text-slate-400 mt-0.5">각 항목 오른쪽의 [수정]이나 [삭제]를 눌러 관리하세요</p>
+            <h2 class="text-[16px] font-bold text-slate-900">최근 기록 내역</h2>
+            <p class="text-[11px] text-[#8E8E93] mt-0.5">내역을 눌러 언제든 수정하거나 삭제할 수 있어요</p>
           </div>
-          <button onclick="syncWithCloud()" class="text-xs bg-indigo-50 text-indigo-600 hover:bg-indigo-100 px-3 py-1.5 rounded-lg font-bold transition">
-            🔄 새로고침
+          <button onclick="syncWithCloud()" class="ios-btn text-[12px] bg-[#F2F2F7] hover:bg-[#E5E5EA] text-[#007AFF] px-3.5 py-1.5 rounded-full font-semibold flex items-center gap-1">
+            <span>🔄</span>
+            <span>동기화</span>
           </button>
         </div>
-        <div id="entryList" class="divide-y divide-slate-100 space-y-2"></div>
+        <div id="entryList" class="divide-y divide-black/5"></div>
       </div>
 
     </section>
@@ -220,17 +377,26 @@
     let monthlyBudget = Number(localStorage.getItem('monthly_budget_v3')) || 0;
     let chartInstance = null;
 
-    // 로컬 저장소 키 (과거 버전 데이터까지 모두 자동 흡수하여 절대 초기화되지 않도록 보장)
     const STORAGE_KEY = 'smart_ledger_entries_v3';
     const BUDGET_SYNC_ID = 9999999999999;
 
+    // iOS 시스템 팔레트 컬러
     const CATEGORY_COLORS = {
-      '식비/간식': '#f43f5e',
-      '학업/문구': '#6366f1',
-      '교통': '#10b981',
-      '취미/여가': '#f59e0b',
-      '쇼핑': '#ec4899',
-      '용돈/기타': '#64748b'
+      '식비/간식': '#FF3B30',
+      '학업/문구': '#007AFF',
+      '교통': '#34C759',
+      '취미/여가': '#FF9500',
+      '쇼핑': '#AF52DE',
+      '용돈/기타': '#8E8E93'
+    };
+
+    const CATEGORY_ICONS = {
+      '식비/간식': '🍔',
+      '학업/문구': '📚',
+      '교통': '🚌',
+      '취미/여가': '🎮',
+      '쇼핑': '🛍️',
+      '용돈/기타': '💰'
     };
 
     const INCOME_KEYWORDS = ['용돈', '월급', '급여', '수입', '입금', '알바', '환급', '환불', '장학금', '상금', '당근', '판매', '세뱃돈', '캐시백', '이자'];
@@ -242,7 +408,6 @@
       { category: '쇼핑', keywords: ['옷', '신발', '무신사', '올리브영', '다이소', '쿠팡', '케이스', '선물', '화장품'] }
     ];
 
-    // 앱 시작 시 실행: 무조건 기기 내부 저장소부터 불러와서 절대 초기화되지 않게 방어
     window.onload = () => {
       loadFromLocalStorage();
       buildMemoryBank();
@@ -250,8 +415,21 @@
       initCloud();
     };
 
+    // iOS 세그먼트 컨트롤 상태 전환
+    function setEntryType(type) {
+      document.getElementById('typeInput').value = type;
+      const btnExp = document.getElementById('segExpense');
+      const btnInc = document.getElementById('segIncome');
+      if (type === 'income') {
+        btnInc.className = 'ios-segment-btn ios-segment-active text-[#34C759]';
+        btnExp.className = 'ios-segment-btn text-[#8E8E93]';
+      } else {
+        btnExp.className = 'ios-segment-btn ios-segment-active text-[#FF3B30]';
+        btnInc.className = 'ios-segment-btn text-[#8E8E93]';
+      }
+    }
+
     function loadFromLocalStorage() {
-      // v3 데이터 확인, 없으면 구버전(local_ledger, local_ledger_secure) 데이터까지 전부 찾아서 복구
       const rawV3 = localStorage.getItem(STORAGE_KEY);
       const rawV2 = localStorage.getItem('local_ledger_secure');
       const rawV1 = localStorage.getItem('local_ledger');
@@ -299,7 +477,7 @@
           supabaseClient = window.supabase.createClient(url, key);
           syncWithCloud();
         } catch (err) {
-          document.getElementById('syncStatus').innerText = '⚠️ 연동 설정 확인 필요 (현재 기기 안전 저장 중)';
+          document.getElementById('syncStatus').innerText = '연동 설정 확인 필요 (기기 안전 저장 중)';
         }
       }
     }
@@ -310,7 +488,6 @@
       const errBox = document.getElementById('cloudErrorMsg');
       errBox.classList.add('hidden');
 
-      // URL 뒤에 /rest/v1 등이 붙어있으면 자동으로 깔끔하게 정리
       url = url.replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '');
 
       if (!url.startsWith('https://') || !key) {
@@ -327,7 +504,7 @@
         supabaseClient = window.supabase.createClient(url, key);
         const ok = await syncWithCloud(true);
         if (ok) {
-          alert('☁️ 클라우드 연결 성공! 이제 아이폰과 아이패드가 실시간으로 연동됩니다.');
+          alert('☁️ 클라우드 연결 완료! 이제 아이폰과 아이패드가 실시간으로 연동됩니다.');
           toggleConfig();
         }
       } catch (err) {
@@ -336,7 +513,6 @@
       }
     }
 
-    // 핵심: 로컬 데이터와 클라우드 데이터를 비교하여 어느 한쪽도 날아가지 않게 양방향 합치기(병합)
     async function syncWithCloud(showError = false) {
       if (!supabaseClient) return false;
       const errBox = document.getElementById('cloudErrorMsg');
@@ -348,16 +524,16 @@
           .order('created_at', { ascending: false });
 
         if (error) {
-          document.getElementById('syncStatus').innerText = '⚠️ 클라우드 동기화 대기 중 (기기 내부 안전 저장됨)';
+          document.getElementById('syncDot').className = 'w-2 h-2 rounded-full bg-[#FF9500] inline-block';
+          document.getElementById('syncStatus').innerText = '클라우드 대기 중 (기기 내부 안전 보관됨)';
           if (showError) {
-            errBox.innerText = `클라우드 연결 실패 (${error.message}). Key나 SQL 테이블 생성 여부를 확인하세요.`;
+            errBox.innerText = `클라우드 연결 실패 (${error.message}). Key나 SQL 설정을 확인해 주세요.`;
             errBox.classList.remove('hidden');
           }
           return false;
         }
 
         if (Array.isArray(data)) {
-          // 1. 예산 레코드 확인
           const cloudBudget = data.find(item => item.id === BUDGET_SYNC_ID || item.type === 'system');
           if (cloudBudget && cloudBudget.amount > 0) {
             monthlyBudget = cloudBudget.amount;
@@ -376,13 +552,11 @@
           const cloudEntries = data.filter(item => item.id !== BUDGET_SYNC_ID && item.type !== 'system');
           const cloudIds = new Set(cloudEntries.map(i => Number(i.id)));
 
-          // 2. 내 기기(로컬)에만 있고 클라우드에 아직 안 올라간 내역 찾아서 클라우드로 업로드 (초기화 완벽 방지!)
           const unsyncedLocal = entries.filter(localItem => !cloudIds.has(Number(localItem.id)));
           if (unsyncedLocal.length > 0) {
             await supabaseClient.from('ledger').upsert(unsyncedLocal);
           }
 
-          // 3. 클라우드 데이터와 로컬 데이터를 합쳐서 최신순 정렬
           const mergedMap = new Map();
           [...cloudEntries, ...entries].forEach(item => {
             mergedMap.set(Number(item.id), item);
@@ -393,16 +567,16 @@
           buildMemoryBank();
           renderUI();
 
-          document.getElementById('syncStatus').innerText = '☁️ 아이폰·아이패드 실시간 클라우드 연동 중';
+          document.getElementById('syncDot').className = 'w-2 h-2 rounded-full bg-[#007AFF] inline-block';
+          document.getElementById('syncStatus').innerText = '아이폰·아이패드 실시간 동기화 켜짐';
           return true;
         }
       } catch (e) {
-        document.getElementById('syncStatus').innerText = '💾 오프라인 보호 모드 (기기 내부 저장 중)';
+        document.getElementById('syncStatus').innerText = '오프라인 보호 모드 (기기 내부 저장 중)';
         return false;
       }
     }
 
-    // 목표 예산 설정
     async function promptBudget() {
       const input = prompt('이번 달 목표 지출 예산을 입력해 주세요 (숫자만 입력, 0 입력 시 해제):', monthlyBudget || 100000);
       if (input === null) return;
@@ -427,7 +601,6 @@
       renderUI();
     }
 
-    // 과거 내역 메모리 구축 및 원터치 기억 버튼 생성
     function buildMemoryBank() {
       memoryBank = {};
       const datalist = document.getElementById('memoryList');
@@ -452,23 +625,22 @@
         datalist.appendChild(option);
       });
 
-      // 최근 기억된 항목 최대 6개를 터치 한 번으로 자동 입력할 수 있는 칩 버튼으로 표시
       if (keys.length > 0) {
         const label = document.createElement('span');
-        label.className = 'text-[11px] text-slate-400 self-center mr-1';
-        label.innerText = '🧠 기억된 항목:';
+        label.className = 'text-[11px] text-[#8E8E93] self-center mr-1 font-medium';
+        label.innerText = '자주 쓰는 기억:';
         chipsContainer.appendChild(label);
 
         keys.slice(0, 6).forEach(title => {
           const mem = memoryBank[title];
           const chip = document.createElement('button');
           chip.type = 'button';
-          chip.className = 'text-[11px] bg-slate-100 hover:bg-indigo-100 text-slate-700 hover:text-indigo-700 px-2 py-1 rounded-lg font-medium transition';
-          chip.innerText = `${title} (${mem.amount.toLocaleString()}원)`;
+          chip.className = 'ios-btn text-[11px] bg-[#F2F2F7] hover:bg-blue-500/10 text-slate-700 hover:text-[#007AFF] px-2.5 py-1 rounded-full font-semibold';
+          chip.innerText = `${title} ${mem.amount.toLocaleString()}원`;
           chip.onclick = () => {
             document.getElementById('titleInput').value = title;
             document.getElementById('amountInput').value = mem.amount;
-            document.getElementById('typeInput').value = mem.type;
+            setEntryType(mem.type);
             document.getElementById('categoryInput').value = mem.category;
             document.getElementById('memoryBadge').classList.remove('hidden');
           };
@@ -477,7 +649,6 @@
       }
     }
 
-    // 자연어 파서 ("용돈 2000", "밥4000" 자동 분석)
     function analyzeTextAndAmount(rawText) {
       const text = rawText.trim();
       if (!text) return null;
@@ -501,14 +672,12 @@
       let category = '식비/간식';
       let fromMemory = false;
 
-      // 1순위: 과거 메모리에서 검색
       if (memoryBank[title]) {
         type = memoryBank[title].type;
         category = memoryBank[title].category;
         if (amount === null) amount = memoryBank[title].amount;
         fromMemory = true;
       } else {
-        // 2순위: 키워드 사전으로 수입/지출 및 카테고리 자동 분류
         const isIncome = INCOME_KEYWORDS.some(kw => title.includes(kw));
         if (isIncome) {
           type = 'income';
@@ -539,14 +708,14 @@
 
       document.getElementById('titleInput').value = parsed.title;
       document.getElementById('amountInput').value = parsed.amount;
-      document.getElementById('typeInput').value = parsed.type;
+      setEntryType(parsed.type);
       document.getElementById('categoryInput').value = parsed.category;
       if (parsed.fromMemory) {
         document.getElementById('memoryBadge').classList.remove('hidden');
       }
 
       const typeLabel = parsed.type === 'income' ? '수입(+)' : '지출(-)';
-      preview.innerText = `👉 자동 인식: [${parsed.category}] "${parsed.title}" ${parsed.amount.toLocaleString()}원 ${typeLabel}`;
+      preview.innerText = `✨ [${parsed.category}] "${parsed.title}" ${parsed.amount.toLocaleString()}원 ${typeLabel}`;
       preview.classList.remove('hidden');
     }
 
@@ -558,10 +727,10 @@
         alert('사용처와 금액을 함께 입력해 주세요! (예: 용돈 2000, 밥4000)');
         return;
       }
-      editingId = null; // 빠른 등록은 항상 신규 등록
+      editingId = null;
       document.getElementById('titleInput').value = parsed.title;
       document.getElementById('amountInput').value = parsed.amount;
-      document.getElementById('typeInput').value = parsed.type;
+      setEntryType(parsed.type);
       document.getElementById('categoryInput').value = parsed.category;
       saveEntry(new Event('submit'));
       document.getElementById('quickInput').value = '';
@@ -582,13 +751,12 @@
         document.getElementById('amountInput').value = parsed.amount;
       }
 
-      document.getElementById('typeInput').value = parsed.type;
+      setEntryType(parsed.type);
       document.getElementById('categoryInput').value = parsed.category;
       if (parsed.fromMemory) badge.classList.remove('hidden');
       else badge.classList.add('hidden');
     }
 
-    // 내역 저장 (신규 추가 및 수정 겸용)
     async function saveEntry(e) {
       if (e && e.preventDefault) e.preventDefault();
 
@@ -601,7 +769,6 @@
       const category = document.getElementById('categoryInput').value;
 
       if (editingId) {
-        // 기존 항목 수정
         const idx = entries.findIndex(item => Number(item.id) === Number(editingId));
         if (idx !== -1) {
           entries[idx].title = cleanTitle;
@@ -619,7 +786,6 @@
         }
         cancelEdit();
       } else {
-        // 새 항목 추가
         const newItem = {
           id: Date.now(),
           title: cleanTitle,
@@ -637,6 +803,7 @@
         }
 
         document.getElementById('ledgerForm').reset();
+        setEntryType('expense');
         document.getElementById('memoryBadge').classList.add('hidden');
       }
 
@@ -644,7 +811,6 @@
       renderUI();
     }
 
-    // 수정 모드 시작
     function startEdit(id) {
       const target = entries.find(item => Number(item.id) === Number(id));
       if (!target) return;
@@ -652,231 +818,24 @@
       editingId = target.id;
       document.getElementById('titleInput').value = target.title;
       document.getElementById('amountInput').value = target.amount;
-      document.getElementById('typeInput').value = target.type;
+      setEntryType(target.type);
       document.getElementById('categoryInput').value = target.category;
 
-      document.getElementById('formTitle').innerText = '✏️ 내역 수정 모드';
-      document.getElementById('submitBtn').innerText = '수정 완료 저장';
-      document.getElementById('submitBtn').classList.replace('bg-indigo-600', 'bg-amber-500');
-      document.getElementById('submitBtn').classList.replace('hover:bg-indigo-700', 'hover:bg-amber-600');
+      document.getElementById('formTitle').innerText = '✏️ 내역 수정 중';
+      document.getElementById('submitBtn').innerText = '수정 완료';
+      document.getElementById('submitBtn').classList.replace('bg-[#007AFF]', 'bg-[#FF9500]');
       document.getElementById('cancelEditBtn').classList.remove('hidden');
-      document.getElementById('formCard').classList.add('ring-4', 'ring-amber-300');
+      document.getElementById('formCard').classList.add('ring-2', 'ring-[#FF9500]');
 
       document.getElementById('formCard').scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
-    // 수정 취소
     function cancelEdit() {
       editingId = null;
       document.getElementById('ledgerForm').reset();
-      document.getElementById('formTitle').innerText = '📝 상세 내역 작성';
+      setEntryType('expense');
+      document.getElementById('formTitle').innerText = '내역 상세 기록';
       document.getElementById('submitBtn').innerText = '기록 저장하기';
-      document.getElementById('submitBtn').classList.replace('bg-amber-500', 'bg-indigo-600');
-      document.getElementById('submitBtn').classList.replace('hover:bg-amber-600', 'hover:bg-indigo-700');
+      document.getElementById('submitBtn').classList.replace('bg-[#FF9500]', 'bg-[#007AFF]');
       document.getElementById('cancelEditBtn').classList.add('hidden');
-      document.getElementById('formCard').classList.remove('ring-4', 'ring-amber-300');
-      document.getElementById('memoryBadge').classList.add('hidden');
-    }
-
-    // 내역 삭제
-    async function deleteEntry(id) {
-      if (!confirm('이 내역을 정말 삭제할까요?')) return;
-      if (Number(editingId) === Number(id)) cancelEdit();
-
-      entries = entries.filter(item => Number(item.id) !== Number(id));
-      saveToLocalStorage();
-      if (supabaseClient) {
-        await supabaseClient.from('ledger').delete().eq('id', id);
-      }
-      buildMemoryBank();
-      renderUI();
-    }
-
-    // 예산 진행바 및 초과 알림 업데이트
-    function updateBudgetUI(thisMonthExpense) {
-      const statusText = document.getElementById('budgetStatusText');
-      const percentText = document.getElementById('budgetPercentText');
-      const progressBar = document.getElementById('budgetProgressBar');
-      const alertBox = document.getElementById('budgetAlertBox');
-
-      if (!monthlyBudget || monthlyBudget <= 0) {
-        statusText.innerText = '우측 [예산 설정]을 눌러 이번 달 목표를 정해보세요';
-        percentText.innerText = '-';
-        progressBar.style.width = '0%';
-        alertBox.classList.add('hidden');
-        return;
-      }
-
-      const ratio = Math.round((thisMonthExpense / monthlyBudget) * 100);
-      const clampedWidth = Math.min(ratio, 100);
-      statusText.innerText = `${thisMonthExpense.toLocaleString()}원 지출 / 목표 ${monthlyBudget.toLocaleString()}원`;
-      percentText.innerText = `${ratio}%`;
-      progressBar.style.width = `${clampedWidth}%`;
-
-      progressBar.className = 'h-full transition-all duration-300 ';
-      alertBox.className = 'mt-3 p-3 rounded-xl text-xs font-bold flex items-center gap-2 ';
-
-      if (thisMonthExpense > monthlyBudget) {
-        const diff = thisMonthExpense - monthlyBudget;
-        progressBar.classList.add('bg-rose-500');
-        alertBox.classList.add('bg-rose-50', 'text-rose-600', 'border', 'border-rose-200');
-        alertBox.innerHTML = `🚨 목표 예산을 ${diff.toLocaleString()}원 초과했습니다! 지출 관리가 필요해요.`;
-      } else if (ratio >= 80) {
-        const remain = monthlyBudget - thisMonthExpense;
-        progressBar.classList.add('bg-amber-500');
-        alertBox.classList.add('bg-amber-50', 'text-amber-700', 'border', 'border-amber-200');
-        alertBox.innerHTML = `⚠️ 목표 예산의 ${ratio}%를 사용했어요! 남은 예산은 ${remain.toLocaleString()}원입니다.`;
-      } else {
-        const remain = monthlyBudget - thisMonthExpense;
-        progressBar.classList.add('bg-emerald-500');
-        alertBox.classList.add('bg-emerald-50', 'text-emerald-700', 'border', 'border-emerald-200');
-        alertBox.innerHTML = `✅ 예산 안에서 잘 관리하고 있어요! (여유 예산: ${remain.toLocaleString()}원)`;
-      }
-    }
-
-    // 이번 달 카테고리별 지출 도넛 차트 업데이트
-    function updateChartUI(categoryTotals, thisMonthExpense) {
-      const emptyState = document.getElementById('chartEmptyState');
-      const chartContent = document.getElementById('chartContent');
-      const breakdownEl = document.getElementById('categoryBreakdown');
-
-      const now = new Date();
-      document.getElementById('chartMonthTitle').innerText = `📊 ${now.getMonth() + 1}월 카테고리별 지출 비율`;
-
-      if (thisMonthExpense <= 0) {
-        emptyState.classList.remove('hidden');
-        chartContent.classList.add('hidden');
-        return;
-      }
-
-      emptyState.classList.add('hidden');
-      chartContent.classList.remove('hidden');
-
-      const sortedCategories = Object.entries(categoryTotals)
-        .filter(([_, val]) => val > 0)
-        .sort((a, b) => b[1] - a[1]);
-
-      const labels = sortedCategories.map(([cat]) => cat);
-      const dataValues = sortedCategories.map(([_, val]) => val);
-      const bgColors = labels.map(cat => CATEGORY_COLORS[cat] || '#94a3b8');
-
-      const ctx = document.getElementById('expenseChart').getContext('2d');
-      if (chartInstance) chartInstance.destroy();
-      chartInstance = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-          labels: labels,
-          datasets: [{
-            data: dataValues,
-            backgroundColor: bgColors,
-            borderWidth: 2,
-            borderColor: '#ffffff'
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          cutout: '65%',
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: (context) => {
-                  const val = context.parsed;
-                  const pct = Math.round((val / thisMonthExpense) * 100);
-                  return ` ${context.label}: ${val.toLocaleString()}원 (${pct}%)`;
-                }
-              }
-            }
-          }
-        }
-      });
-
-      breakdownEl.innerHTML = '';
-      sortedCategories.forEach(([cat, val]) => {
-        const pct = Math.round((val / thisMonthExpense) * 100);
-        const color = CATEGORY_COLORS[cat] || '#94a3b8';
-        const item = document.createElement('div');
-        item.className = 'flex items-center justify-between py-1';
-        item.innerHTML = `
-          <div class="flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: ${color}"></span>
-            <span class="font-semibold text-slate-700">${cat}</span>
-          </div>
-          <div class="text-right">
-            <span class="font-bold text-slate-800">${val.toLocaleString()}원</span>
-            <span class="text-slate-400 ml-1">(${pct}%)</span>
-          </div>
-        `;
-        breakdownEl.appendChild(item);
-      });
-    }
-
-    // 전체 화면 렌더링 (수정/삭제 버튼 포함)
-    function renderUI() {
-      let totalAllIncome = 0, totalAllExpense = 0;
-      let thisMonthIncome = 0, thisMonthExpense = 0;
-      const categoryTotals = {};
-
-      const now = new Date();
-      const currentYear = now.getFullYear();
-      const currentMonth = now.getMonth();
-
-      const listEl = document.getElementById('entryList');
-      listEl.innerHTML = '';
-
-      if (entries.length === 0) {
-        listEl.innerHTML = '<p class="text-sm text-slate-400 py-12 text-center">아직 기록된 내역이 없습니다.<br>위에서 "용돈 2000" 또는 "밥4000"을 입력해 보세요!</p>';
-      }
-
-      entries.forEach(item => {
-        const itemDate = new Date(item.created_at || Date.now());
-        const isThisMonth = itemDate.getFullYear() === currentYear && itemDate.getMonth() === currentMonth;
-
-        if (item.type === 'income') {
-          totalAllIncome += Number(item.amount);
-          if (isThisMonth) thisMonthIncome += Number(item.amount);
-        } else {
-          totalAllExpense += Number(item.amount);
-          if (isThisMonth) {
-            thisMonthExpense += Number(item.amount);
-            categoryTotals[item.category] = (categoryTotals[item.category] || 0) + Number(item.amount);
-          }
-        }
-
-        const dateStr = itemDate.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
-        const isInc = item.type === 'income';
-
-        const row = document.createElement('div');
-        row.className = 'flex justify-between items-center py-3.5';
-        row.innerHTML = `
-          <div>
-            <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-semibold">${item.category}</span>
-            <span class="text-sm font-bold text-slate-800 ml-1.5">${item.title}</span>
-            <div class="text-xs text-slate-400 mt-0.5">${dateStr}</div>
-          </div>
-          <div class="flex items-center gap-1.5">
-            <span class="text-sm font-extrabold mr-1.5 ${isInc ? 'text-emerald-600' : 'text-rose-500'}">
-              ${isInc ? '+' : '-'}${Number(item.amount).toLocaleString()}원
-            </span>
-            <button type="button" onclick="startEdit(${item.id})" class="text-xs bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-bold px-2.5 py-1.5 rounded-lg transition">
-              ✏️ 수정
-            </button>
-            <button type="button" onclick="deleteEntry(${item.id})" class="text-xs bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold px-2.5 py-1.5 rounded-lg transition">
-              🗑️ 삭제
-            </button>
-          </div>
-        `;
-        listEl.appendChild(row);
-      });
-
-      document.getElementById('totalIncome').innerText = `+${thisMonthIncome.toLocaleString()}원`;
-      document.getElementById('totalExpense').innerText = `-${thisMonthExpense.toLocaleString()}원`;
-      document.getElementById('totalBalance').innerText = `${(totalAllIncome - totalAllExpense).toLocaleString()}원`;
-
-      updateBudgetUI(thisMonthExpense);
-      updateChartUI(categoryTotals, thisMonthExpense);
-    }
-  </script>
-</body>
-</html>
+      document.getElement
